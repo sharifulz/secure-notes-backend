@@ -1,0 +1,11 @@
+import type { RequestHandler } from 'express';
+import * as service from './note.service.js';
+import { actor } from '../../middlewares/auth.js';
+import { objectId } from '../../utils/validation.js';
+import { paginationSchema } from '../../utils/pagination.js';
+export const list: RequestHandler = async (req, res) => { res.json(await service.list(paginationSchema.parse(req.query), actor(req).id)); };
+export const listAll: RequestHandler = async (req, res) => { res.json(await service.list(paginationSchema.parse(req.query))); };
+export const get: RequestHandler = async (req, res) => { res.json({ success: true, data: await service.get(objectId.parse(req.params.id), actor(req)) }); };
+export const create: RequestHandler = async (req, res) => { res.status(201).json({ success: true, data: await service.create(actor(req).id, req.body) }); };
+export const update: RequestHandler = async (req, res) => { res.json({ success: true, data: await service.update(objectId.parse(req.params.id), actor(req).id, req.body) }); };
+export const remove: RequestHandler = async (req, res) => { await service.remove(objectId.parse(req.params.id), actor(req).id); res.status(204).end(); };

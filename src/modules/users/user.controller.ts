@@ -1,0 +1,10 @@
+import type { RequestHandler } from 'express';
+import * as service from './user.service.js';
+import { objectId } from '../../utils/validation.js';
+import { paginationSchema } from '../../utils/pagination.js';
+export const list: RequestHandler = async (req, res) => { res.json(await service.list(paginationSchema.parse(req.query))); };
+export const get: RequestHandler = async (req, res) => { res.json({ success: true, data: await service.get(objectId.parse(req.params.id)) }); };
+export const create: RequestHandler = async (req, res) => { res.status(201).json({ success: true, data: await service.create(req.body) }); };
+export const update: RequestHandler = async (req, res) => { res.json({ success: true, data: await service.update(objectId.parse(req.params.id), req.body) }); };
+export const remove: RequestHandler = async (req, res) => { await service.remove(objectId.parse(req.params.id)); res.status(204).end(); };
+export const groups: RequestHandler = async (req, res) => { res.json(await service.groupedByInterests(paginationSchema.parse(req.query))); };

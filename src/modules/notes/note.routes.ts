@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { authenticate } from '../../middlewares/auth.js';
+import { validateBody } from '../../middlewares/validate.js';
+import { createNoteSchema, updateNoteSchema } from './note.validation.js';
+import * as controller from './note.controller.js';
+export const noteRouter = Router();
+noteRouter.use(authenticate);
+noteRouter.get('/', controller.list);
+noteRouter.post('/', validateBody(createNoteSchema), controller.create);
+noteRouter.get('/:id', controller.get);
+noteRouter.patch('/:id', validateBody(updateNoteSchema), controller.update);
+noteRouter.delete('/:id', controller.remove);

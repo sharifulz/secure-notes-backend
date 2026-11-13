@@ -1,0 +1,26 @@
+[Unit]
+Description=Secure Notes Express API (port 8787)
+Wants=network-online.target
+After=network-online.target mongod.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=securenotes
+Group=securenotes
+WorkingDirectory=/opt/secure-notes-api
+EnvironmentFile=/opt/secure-notes-api/.env
+ExecStart=/usr/bin/node /opt/secure-notes-api/dist/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

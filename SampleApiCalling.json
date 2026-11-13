@@ -1,0 +1,21 @@
+GET: 
+http: //samiulenterprise.com:8787/health
+
+POST:
+http: //samiulenterprise.com:8787/api/v1/auth/register
+{
+    "name": "Amina",
+    "email": "amina@example.com",
+    "password": "YourStrongPassword123!",
+    "interests": [
+        "chess",
+        "reading"
+    ]
+}
+
+POST:
+http: //samiulenterprise.com:8787/api/v1/auth/login
+{
+    "email": "amina@example.com",
+    "password": "YourStrongPassword123!"
+}
