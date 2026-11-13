@@ -1,8 +1,5 @@
-GET: 
-http: //samiulenterprise.com:8787/health
-
 POST:
-http: //samiulenterprise.com:8787/api/v1/auth/register
+http: //8787/api/v1/auth/register
 {
     "name": "Amina",
     "email": "amina@example.com",
@@ -14,7 +11,7 @@ http: //samiulenterprise.com:8787/api/v1/auth/register
 }
 
 POST:
-http: //samiulenterprise.com:8787/api/v1/auth/login
+http: //<ip>:8787/api/v1/auth/login
 {
     "email": "amina@example.com",
     "password": "YourStrongPassword123!"
