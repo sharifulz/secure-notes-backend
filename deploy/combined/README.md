@@ -186,6 +186,8 @@ Existing notes, API accounts, and posts stay in the old database and remain avai
 
 ## Logs and restarts
 
+For subsequent backend-only code updates, use `npm run deploy` from your desktop instead of repeating setup. See [UPDATE-BACKEND.md](../UPDATE-BACKEND.md). This does not redeploy the frontend or change database/tunnel configuration.
+
 ```bash
 journalctl -u secure-notes-db-tunnel -n 50 --no-pager
 journalctl -u secure-notes-api -n 50 --no-pager

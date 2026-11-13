@@ -11,6 +11,7 @@
     "test": "vitest run",
     "package:release": "node deploy/package-release.mjs",
     "package:combined": "node deploy/package-combined.mjs",
+    "deploy": "node deploy/deploy-backend.mjs",
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "seed:password": "tsx src/scripts/seed-password.ts",
     "indexes:check": "tsx src/scripts/check-indexes.ts"
