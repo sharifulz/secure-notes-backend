@@ -4,6 +4,8 @@ Backend implementation for the interview task, using Express 5, TypeScript, Mong
 
 Current target: frontend and Express on **160.25.5.68**, with the existing MongoDB on **samiulenterprise.com** through a persistent SSH tunnel. See [combined deployment](deploy/combined/README.md) and build with `npm run package:combined`. This packages the sibling `SecureNoteFrontEnd` static files with a same-origin API default without editing their local source. The old single-server update guide remains in `deploy/README.md`. No MongoDB installation, initialization, or data migration is needed on the new VPS.
 
+For later **backend-only updates**, run `npm run deploy` or `deploy-backend.cmd` from this folder. See [update instructions](deploy/UPDATE-BACKEND.md). The command tests/builds locally, uploads to 160.25.5.68, restarts only the API, and restores previous runtime files if activation fails. Server configuration and database data are preserved.
+
 ## Start
 
 Requires Node.js 22.12+ (tested here with Node 26), npm, and MongoDB 5.0+ running as a replica set. A single-node development replica set is sufficient. Content creation and admin account changes use transactions to prevent races with account deletion and to protect the final admin.
@@ -33,6 +35,84 @@ Run `npm run seed:admin`. It initializes the existing admin's null hash or creat
 For each other sample account, set `SEED_USER_EMAIL` and `SEED_USER_PASSWORD`, then run `npm run seed:password`. It only initializes null or missing hashes. Remove seed password variables afterward. These commands do not reset notes, posts, or indexes.
 
 Passwords must be at least 12 characters and at most 72 UTF-8 bytes. Passwords are hashed with bcrypt cost 12. JWTs expire after 15 minutes; clients log in again after expiration. There is no refresh-token subsystem.
+
+## Test users and role permissions
+
+The following accounts are included in `secure_notes_setup.js`. Use them to verify that each role has the correct access:
+
+| Name | Email | Role | Suggested demo password | What to test |
+| --- | --- | --- | --- | --- |
+| System Admin | `admin@notes.test` | `ADMIN` | `AdminDemo2026!` | Own note CRUD, all-notes view, and user management |
+| Rahim Ahmed | `rahim@notes.test` | `USER` | `RahimDemo2026!` | Create, list, read, update, and delete own notes |
+| Karim Hasan | `karim@notes.test` | `USER` | `KarimDemo2026!` | A second user's notes and cross-user access restrictions |
+| Nabila Islam | `nabila@notes.test` | `USER` | `NabilaDemo2026!` | Additional note ownership and list-pagination checks |
+
+**These passwords are examples, not verified passwords for the running database.** The database setup script creates null hashes, not these passwords. Initialize previously unset passwords below before using the suggested credentials. If an account already has a password, use its existing password or deliberately change it through the admin user-management screen. The seed commands refuse to overwrite existing hashes. Demo passwords are for a test environment, not production accounts.
+
+### Initialize demo passwords from the desktop
+
+From `E:\PROJECTS\MongoDb\SecureNotes` in PowerShell, with `.env` pointing to your intended test database and the database tunnel running if required:
+
+```powershell
+# Only run for accounts whose password hashes have not been initialized.
+$env:SEED_ADMIN_EMAIL = "admin@notes.test"
+$env:SEED_ADMIN_PASSWORD = "AdminDemo2026!"
+npm run seed:admin
+Remove-Item Env:SEED_ADMIN_EMAIL, Env:SEED_ADMIN_PASSWORD
+
+$demoUsers = @(
+    @{ Email = "rahim@notes.test"; Password = "RahimDemo2026!" },
+    @{ Email = "karim@notes.test"; Password = "KarimDemo2026!" },
+    @{ Email = "nabila@notes.test"; Password = "NabilaDemo2026!" }
+)
+
+foreach ($demoUser in $demoUsers) {
+    $env:SEED_USER_EMAIL = $demoUser.Email
+    $env:SEED_USER_PASSWORD = $demoUser.Password
+    npm run seed:password
+}
+Remove-Item Env:SEED_USER_EMAIL, Env:SEED_USER_PASSWORD
+```
+
+Each successful command initializes only the specified account's password hash. It does not change roles, notes, or posts. If a command says a password is already set, the suggested password has not been applied to that account. Do not rerun the database setup script to reset passwords.
+
+On a deployed server without development dependencies, use `node dist/scripts/seed-admin.js` or `node dist/scripts/seed-password.js` with the same environment variables instead of the `npm run seed:*` commands.
+
+### User permission checks
+
+Sign in as Rahim through the frontend, or obtain a JWT using `POST /auth/login`. The deployed API base is `http://160.25.5.68/api/v1`; for local development it is `http://localhost:4000/api/v1`.
+
+| Test | Frontend action / API request | Expected result |
+| --- | --- | --- |
+| List own notes | My notes / `GET /notes?page=1&limit=2` | 200; only Rahim's notes, with pagination |
+| Create a note | New note / `POST /notes` | 201; note owner is Rahim |
+| Read own note | Read / `GET /notes/:id` | 200 for Rahim's note |
+| Update own note | Edit / `PATCH /notes/:id` | 200; title/content updated |
+| Delete own note | Delete / `DELETE /notes/:id` | 204; note removed |
+| Access user management | `GET /users` | 403; admin navigation is hidden |
+| Access everyone's notes | `GET /admin/notes` | 403 |
+
+Create a temporary note as Rahim and save its ID. Sign out and sign in as Karim. Rahim's note must not appear in Karim's My notes list. Using Karim's token, attempt `GET`, `PATCH`, and `DELETE /notes/:id` with Rahim's note ID: all must return **404**, and Rahim's note must remain unchanged. Use separate browser profiles or separate Postman token variables when comparing accounts.
+
+### Admin permission checks
+
+Sign in as `admin@notes.test`:
+
+| Test | Frontend action / API request | Expected result |
+| --- | --- | --- |
+| Manage own notes | My notes / own-note CRUD endpoints | Same abilities as an ordinary user |
+| View everyone's notes | Everyone's notes / `GET /admin/notes?page=1&limit=2` | 200; notes belonging to all users, with pagination |
+| Read another user's note | Read / `GET /notes/:id` | 200 |
+| Edit/delete another user's note | `PATCH` or `DELETE /notes/:id` | 404; admin access to others' notes is read-only |
+| List users | Manage users / `GET /users?page=1&limit=2` | 200; paginated accounts, without password hashes |
+| Add a user | Add user / `POST /users` | 201 |
+| View user details | Details / `GET /users/:id` | 200 |
+| Update a user | Edit / `PATCH /users/:id` | 200; allowed profile, role, interests, or password changes |
+| Remove a user | Delete / `DELETE /users/:id` | 204 when that user owns no notes or posts |
+
+For the add/update/remove sequence, create a disposable account such as `temporary@notes.test` with role `USER` and a password of at least 12 characters. Change its name or interests, verify the update, then delete it before creating any content for that account. Deleting an account that owns content returns **409**; removing or demoting the final admin also returns **409**.
+
+Finally, sign out and request a protected endpoint without a JWT: it must return **401**. User roles and ownership are enforced by the backend even if a client manually calls an admin endpoint.
 
 ## API
 

@@ -14,9 +14,11 @@ export async function register(input: Omit<NewUser, 'role'>) {
 export async function login(email: string, password: string) {
   const user = await User.findOne({ email }).select('+passwordHash');
   const valid = await verifyPassword(password, user?.passwordHash || await dummyHash);
-  if (!valid || !user?.passwordHash) throw new ApiError(401, 'Invalid email or password');
-  return { accessToken: jwt.sign({}, env.JWT_SECRET, {
-    algorithm: 'HS256', subject: user.id, expiresIn: '15m',
-    issuer: env.JWT_ISSUER, audience: env.JWT_AUDIENCE,
-  }), tokenType: 'Bearer', expiresIn: 900 };
+  if (!valid || !user?.passwordHash) throw new ApiError(401, 'Invalid email or password given, try again');
+  return {
+    accessToken: jwt.sign({}, env.JWT_SECRET, {
+      algorithm: 'HS256', subject: user.id, expiresIn: '15m',
+      issuer: env.JWT_ISSUER, audience: env.JWT_AUDIENCE,
+    }), tokenType: 'Bearer', expiresIn: 900
+  };
 }
