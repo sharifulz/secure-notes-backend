@@ -1,5 +1,14 @@
 # Secure Notes API
 
+## API documentation
+
+- **Swagger UI:** [http://160.25.5.68/api/v1/docs/](http://160.25.5.68/api/v1/docs/) after deployment; works through the existing Nginx `/api/` route.
+- **Local Swagger:** [http://localhost:4000/api/v1/docs/](http://localhost:4000/api/v1/docs/).
+- **Setup and usage:** [docs/SWAGGER.md](docs/SWAGGER.md).
+- **Detailed Markdown explanation:** [complete walkthrough](docs/API-WALKTHROUGH.md) or [one file per endpoint](docs/api/README.md).
+
+Swagger groups all 18 application/health operations, explains request validation and response codes, and supports JWT authorization for interactive requests. Documentation is public; private APIs remain protected.
+
 Backend implementation for the interview task, using Express 5, TypeScript, Mongoose, JWT, bcrypt, and Zod. The existing `secure_notes_setup.js` is preserved.
 
 Current target: frontend and Express on **160.25.5.68**, with the existing MongoDB on **samiulenterprise.com** through a persistent SSH tunnel. See [combined deployment](deploy/combined/README.md) and build with `npm run package:combined`. This packages the sibling `SecureNoteFrontEnd` static files with a same-origin API default without editing their local source. The old single-server update guide remains in `deploy/README.md`. No MongoDB installation, initialization, or data migration is needed on the new VPS.

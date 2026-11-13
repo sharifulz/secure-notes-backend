@@ -10,6 +10,7 @@ import { postRouter } from './modules/posts/post.routes.js';
 import { listAll } from './modules/notes/note.controller.js';
 import { authenticate, requireAdmin } from './middlewares/auth.js';
 import { errorHandler } from './middlewares/errors.js';
+import { swaggerRouter } from './docs/swagger.routes.js';
 
 export const app = express();
 app.disable('x-powered-by');
@@ -20,6 +21,9 @@ app.use(rateLimit({ windowMs: 60000, limit: 200, standardHeaders: 'draft-8', leg
   message: { success: false, message: 'Too many requests' } }));
 app.use(express.json({ limit: '128kb' }));
 app.get('/health', (_req, res) => { res.json({ success: true, data: { status: 'ok' } }); });
+app.use('/api-docs', swaggerRouter);
+// This alias works through the existing Nginx /api/ proxy without new config.
+app.use('/api/v1/docs', swaggerRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/notes', noteRouter);

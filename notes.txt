@@ -1,1 +1,79 @@
 E:\PROJECTS\MongoDb\SecureNotes> .\deploy-backend.cmd
+
+
+Database Server:
+mongosh "mongodb://127.0.0.1:27017/secure_notes_db?authSource=secure_notes_db&directConnection=true" \
+  --username secure_notes_app \
+  --password
+
+show dbs
+use secure_notes_db
+show collections
+db.users.find({}, { passwordHash: 0 })
+db.users.find({}, { passwordHash: 0 }) // To see password hash
+db.notes.find().limit(10)
+exit
+
+==================================== Find with clause ==================================== 
+db.users.findOne(
+  { email: "rahim@notes.test" },
+  { passwordHash: 0 }
+)
+
+
+db.users.find(
+  { role: "ADMIN" },
+  { name: 1, email: 1, role: 1 }
+)
+
+db.users.find(
+  {
+    role: "USER",
+    interests: "chess"
+  },
+  { passwordHash: 0 }
+)
+
+Update a user matching an email
+db.users.updateOne(
+  { email: "rahim@notes.test" },
+  {
+    $set: {
+      name: "Rahim Updated",
+      updatedAt: new Date()
+    }
+  }
+)
+
+
+==================================== Add an interest without duplicates ==================================== 
+
+db.users.updateOne(
+  { email: "rahim@notes.test" },
+  {
+    $addToSet: { interests: "photography" },
+    $set: { updatedAt: new Date() }
+  }
+)
+
+Change a user’s role
+
+db.users.updateOne(
+  {
+    email: "karim@notes.test",
+    role: "USER"
+  },
+  {
+    $set: {
+      role: "ADMIN",
+      updatedAt: new Date()
+    }
+  }
+)
+
+
+==================================== Remove a user matching an email ==================================== 
+
+db.users.deleteOne({
+  email: "temporary@notes.test"
+})
