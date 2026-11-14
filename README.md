@@ -6,6 +6,7 @@
 - **Local Swagger:** [http://localhost:4000/api/v1/docs/](http://localhost:4000/api/v1/docs/).
 - **Setup and usage:** [docs/SWAGGER.md](docs/SWAGGER.md).
 - **Detailed Markdown explanation:** [complete walkthrough](docs/API-WALKTHROUGH.md) or [one file per endpoint](docs/api/README.md).
+- **Recruiter-friendly database diagram:** paste [secure-notes-dbdiagram.txt](docs/secure-notes-dbdiagram.txt) into dbdiagram.io. It represents the three MongoDB collections, logical references, and all five custom indexes in DBML.
 
 Swagger groups all 18 application/health operations, explains request validation and response codes, and supports JWT authorization for interactive requests. Documentation is public; private APIs remain protected.
 
