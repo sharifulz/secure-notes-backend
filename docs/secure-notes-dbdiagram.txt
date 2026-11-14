@@ -1,0 +1,97 @@
+// Paste this entire file into the DBML editor at https://dbdiagram.io.
+// This is a logical diagram of MongoDB collections, not an SQL migration.
+// Source: src/modules/{users,notes,posts}/*.model.ts
+
+Project secure_notes_db {
+  Note: '''
+    Secure Notes - MongoDB / Mongoose data model
+
+    The three boxes represent MongoDB collections, not SQL tables.
+    ObjectId represents a MongoDB document ID. Interests is an embedded string array.
+    Reference lines show application-level associations, not database-enforced foreign keys.
+    Required fields, defaults, and roles describe Mongoose/application rules.
+    Both createdAt and updatedAt are managed by Mongoose timestamps.
+    versionKey is disabled: these documents do not have a Mongoose __v field.
+
+    Each collection has MongoDB's built-in unique _id index, represented by pk.
+    Exactly five additional indexes are shown, matching the schema.index declarations.
+    Index direction is ASC = 1 and DESC = -1 in the MongoDB definitions.
+    No standalone role, interests, ownerId, or authorId indexes are added.
+  '''
+}
+
+Enum user_role {
+  USER [note: 'Create, list, read, update, and delete own notes.']
+  ADMIN [note: 'USER capabilities plus user management and reading all notes. Cannot edit or delete other users notes.']
+}
+
+Table users {
+  _id ObjectId [pk, not null, note: 'MongoDB document ID. Built-in unique _id index.']
+  name string [not null, note: 'Trimmed name. Maximum 100 characters.']
+  email string [not null, note: 'Trimmed, lowercase email. Uniqueness is enforced by the named email index below.']
+  passwordHash string [not null, note: 'bcrypt password hash, cost 12; hidden from normal queries using select:false. Seed accounts temporarily have null until initialized. No plaintext password is stored.']
+  role user_role [not null, default: 'USER', note: 'Stored as a MongoDB string. Public registration always creates USER accounts.']
+  interests "string[]" [default: `[]`, note: 'Embedded array, not another collection. API: up to 30 trimmed/lowercase strings of 1-50 characters; normalized duplicates removed.']
+  writeVersion number [default: 0, note: 'Internal transaction lock counter. Hidden from normal queries. Coordinates user deletion, admin changes, and content creation.']
+  createdAt datetime [note: 'MongoDB Date; automatically set by Mongoose timestamps.']
+  updatedAt datetime [note: 'MongoDB Date; automatically maintained by Mongoose timestamps.']
+
+  indexes {
+    email [unique, name: 'idx_users_email_unique', note: 'MongoDB { email: 1 }. Supports login and prevents duplicate emails.']
+    (createdAt [desc], _id [desc]) [name: 'idx_users_created_id', note: 'MongoDB { createdAt: -1, _id: -1 }. Supports paginated admin user lists.']
+  }
+
+  Note: '''
+    Authentication and profiles.
+    JWT authentication loads the current role from this collection on each protected request.
+    The interest report unwinds the embedded interests array and groups users by interest.
+    Deletion/demotion of the final admin is rejected by the application.
+    Deleting a user who owns notes or posts is rejected; there is no automatic cascade.
+  '''
+}
+
+Table notes {
+  _id ObjectId [pk, not null, note: 'MongoDB document ID. Built-in unique _id index.']
+  ownerId ObjectId [not null, note: 'Mongoose ref: User. Taken from the authenticated account, not from client-supplied ownership data.']
+  title string [not null, note: 'API trims the title and requires 1-200 characters.']
+  content string [not null, note: 'Private note content. API requires 1-50000 characters.']
+  createdAt datetime [note: 'MongoDB Date; automatically set by Mongoose timestamps.']
+  updatedAt datetime [note: 'MongoDB Date; automatically maintained by Mongoose timestamps.']
+
+  indexes {
+    (ownerId [asc], createdAt [desc], _id [desc]) [name: 'idx_notes_owner_created_id', note: 'MongoDB { ownerId: 1, createdAt: -1, _id: -1 }. Supports own-note lists and ownership existence checks.']
+    (createdAt [desc], _id [desc]) [name: 'idx_notes_created_id', note: 'MongoDB { createdAt: -1, _id: -1 }. Supports the admin list of all notes.']
+  }
+
+  Note: '''
+    Private notes: one user can own many notes; each note has one owner reference.
+    USER reads/writes own notes. ADMIN reads all notes but only writes own notes.
+    Updates/deletes atomically match both _id and the authenticated ownerId.
+    Note creation locks the owner document and inserts the note within a transaction.
+  '''
+}
+
+Table posts {
+  _id ObjectId [pk, not null, note: 'MongoDB document ID. Built-in unique _id index.']
+  authorId ObjectId [not null, note: 'Mongoose ref: User. Taken from the authenticated account.']
+  title string [not null, note: 'API trims the title and requires 1-200 characters.']
+  content string [not null, note: 'Public post content. API requires 1-50000 characters.']
+  createdAt datetime [note: 'MongoDB Date; automatically set by Mongoose timestamps.']
+  updatedAt datetime [note: 'MongoDB Date; automatically maintained by Mongoose timestamps.']
+
+  indexes {
+    (authorId [asc], createdAt [desc], _id [desc]) [name: 'idx_posts_author_created_id', note: 'MongoDB { authorId: 1, createdAt: -1, _id: -1 }. Supports author-post lookup and newest-first pagination.']
+  }
+
+  Note: '''
+    Public posts: one user can write many posts; each post has one author reference.
+    Authenticated accounts can publish posts. Anyone can read a specific authors posts.
+    One User.aggregate pipeline matches a user and uses $lookup to join this collection.
+    Post creation locks the author document and inserts the post within a transaction.
+  '''
+}
+
+// Logical Mongoose references only. MongoDB does not enforce SQL foreign keys.
+// Do not add delete:cascade: the application rejects deletion of content owners.
+Ref note_owner: notes.ownerId > users._id
+Ref post_author: posts.authorId > users._id
