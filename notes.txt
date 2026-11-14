@@ -1,5 +1,11 @@
-E:\PROJECTS\MongoDb\SecureNotes> .\deploy-backend.cmd
+Powershell: E:\PROJECTS\MongoDb\SecureNotes> .\deploy-backend.cmd
 
+Gitbash: 
+cd /e/PROJECTS/MongoDb/SecureNotes
+cmd.exe /c "deploy-backend.cmd"
+
+If Git Bash causes argument conversion issues, use:
+MSYS_NO_PATHCONV=1 cmd.exe /c "deploy-backend.cmd"
 
 Database Server:
 mongosh "mongodb://127.0.0.1:27017/secure_notes_db?authSource=secure_notes_db&directConnection=true" \
